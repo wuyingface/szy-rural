@@ -5,21 +5,23 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Http\Requests;
 use App\Models\User;
+use Auth;
 
 class UsersController extends Controller
 {
+    //注册页面
     public function create()
     {
         return view('users.create');
     }
 
-
+    //个人主页
     public function show(User $user)
     {
         return view('users.show', compact('user'));
     }
 
-
+    //用户注册
     public function store(Request $request)
     {
         $this->validate($request, [
@@ -36,7 +38,17 @@ class UsersController extends Controller
             'password' => bcrypt($request->password),
         ]);
 
+        Auth::login($user);
+
         session()->flash('success', '欢迎，您将在这里开启一段新的旅程~');
         return redirect()->route('users.show', [$user]);
+    }
+
+    //用户退出登录
+    public function destroy()
+    {
+        Auth::logout();
+        session()->flash('success', '您已成功退出！');
+        return redirect('login');
     }
 }
