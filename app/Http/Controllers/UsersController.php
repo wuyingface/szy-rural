@@ -9,6 +9,26 @@ use Auth;
 
 class UsersController extends Controller
 {
+
+    //未登录和登陆用户访问页面限制
+    public function __construct()
+    {
+        $this->middleware('auth', [
+            'except' => ['show', 'create', 'store', 'index']
+        ]);
+
+        $this->middleware('guest', [
+            'only' => ['create']
+        ]);
+    }
+
+    //用户列表
+    public function index()
+    {
+        $users = User::paginate(10);
+        return view('users.index', compact('users'));
+    }
+
     //注册页面
     public function create()
     {
@@ -44,11 +64,42 @@ class UsersController extends Controller
         return redirect()->route('users.show', [$user]);
     }
 
-    //用户退出登录
-    public function destroy()
+    //删除用户
+    public function destroy(User $user)
     {
-        Auth::logout();
-        session()->flash('success', '您已成功退出！');
-        return redirect('login');
+        $this->authorize('destroy', $user);
+        $user->delete();
+        session()->flash('success', '成功删除用户！');
+        return back();
+    }
+
+    //用户资料编辑界面
+    public function edit(User $user)
+    {
+        $this->authorize('update', $user);
+        return view('users.edit', compact('user'));
+    }
+
+    //处理编辑用户资料
+    public function update(User $user, Request $request)
+    {
+
+        $this->authorize('update', $user);
+
+        $this->validate($request, [
+            'name' => 'required|max:50',
+            'password' => 'nullable|confirmed|min:6'
+        ]);
+
+        $data = [];
+        $data['name'] = $request->name;
+        if ($request->password) {
+            $data['password'] = bcrypt($request->password);
+        }
+        $user->update($data);
+
+        session()->flash('success', '个人资料更新成功！');
+
+        return redirect()->route('users.show', $user->id);
     }
 }
